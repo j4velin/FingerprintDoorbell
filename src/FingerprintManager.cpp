@@ -44,8 +44,6 @@ bool FingerprintManager::connect() {
 
     connected = true;
     return connected;
-
-    //updateTouchState(false);
 }
 
 void FingerprintManager::updateTouchState(bool touched)
@@ -452,6 +450,8 @@ void FingerprintManager::setLedRingError() {
 }
 
 void FingerprintManager::setLedRingReady() {
+  Serial.println("turning LED off");
+  finger.LEDcontrol(FINGERPRINT_LED_OFF, 0, FINGERPRINT_LED_BLUE);
   /*
   if (!ignoreTouchRing)
     finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 250, FINGERPRINT_LED_BLUE);
