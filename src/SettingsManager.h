@@ -4,9 +4,7 @@
 #include <Preferences.h>
 #include "global.h"
 
-struct WifiSettings {    
-    String ssid = "";
-    String password = "";
+struct NetworkSettings {
     String hostname = "";
 };
 
@@ -23,26 +21,24 @@ struct AppSettings {
 
 class SettingsManager {       
   private:
-    WifiSettings wifiSettings;
+    NetworkSettings networkSettings;
     AppSettings appSettings;
 
-    void saveWifiSettings();
+    void saveNetworkSettings();
     void saveAppSettings();
 
   public:
-    bool loadWifiSettings();
+    bool loadNetworkSettings();
     bool loadAppSettings();
 
-    WifiSettings getWifiSettings();
-    void saveWifiSettings(WifiSettings newSettings);
+    NetworkSettings getNetworkSettings();
+    void saveNetworkSettings(NetworkSettings newSettings);
     
     AppSettings getAppSettings();
     void saveAppSettings(AppSettings newSettings);
 
-    bool isWifiConfigured();
-
     bool deleteAppSettings();
-    bool deleteWifiSettings();
+    bool deleteNetworkSettings();
 
     String generateNewPairingCode();
 

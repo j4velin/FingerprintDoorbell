@@ -62,7 +62,6 @@ class FingerprintManager {
     void setIgnoreTouchRing(bool state);
     bool isFingerOnSensor();
     void setLedRingError();
-    void setLedRingWifiConfig();
     void setLedRingReady();
     String getPairingCode();
     bool setPairingCode(String pairingCode);

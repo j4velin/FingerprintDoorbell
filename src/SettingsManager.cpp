@@ -1,12 +1,10 @@
 #include "SettingsManager.h"
 #include <Crypto.h>
 
-bool SettingsManager::loadWifiSettings() {
+bool SettingsManager::loadNetworkSettings() {
     Preferences preferences;
-    if (preferences.begin("wifiSettings", true)) {
-        wifiSettings.ssid = preferences.getString("ssid", String(""));
-        wifiSettings.password = preferences.getString("password", String(""));
-        wifiSettings.hostname = preferences.getString("hostname", String("FingerprintDoorbell"));
+    if (preferences.begin("networkSettings", true)) {
+        networkSettings.hostname = preferences.getString("hostname", String("FingerprintDoorbell"));
         preferences.end();
         return true;
     } else {
@@ -32,12 +30,10 @@ bool SettingsManager::loadAppSettings() {
     }
 }
    
-void SettingsManager::saveWifiSettings() {
+void SettingsManager::saveNetworkSettings() {
     Preferences preferences;
-    preferences.begin("wifiSettings", false); 
-    preferences.putString("ssid", wifiSettings.ssid);
-    preferences.putString("password", wifiSettings.password);
-    preferences.putString("hostname", wifiSettings.hostname);
+    preferences.begin("networkSettings", false);
+    preferences.putString("hostname", networkSettings.hostname);
     preferences.end();
 }
 
@@ -55,13 +51,13 @@ void SettingsManager::saveAppSettings() {
     preferences.end();
 }
 
-WifiSettings SettingsManager::getWifiSettings() {
-    return wifiSettings;
+NetworkSettings SettingsManager::getNetworkSettings() {
+    return networkSettings;
 }
 
-void SettingsManager::saveWifiSettings(WifiSettings newSettings) {
-    wifiSettings = newSettings;
-    saveWifiSettings();
+void SettingsManager::saveNetworkSettings(NetworkSettings newSettings) {
+    networkSettings = newSettings;
+    saveNetworkSettings();
 }
 
 AppSettings SettingsManager::getAppSettings() {
@@ -71,13 +67,6 @@ AppSettings SettingsManager::getAppSettings() {
 void SettingsManager::saveAppSettings(AppSettings newSettings) {
     appSettings = newSettings;
     saveAppSettings();
-}
-
-bool SettingsManager::isWifiConfigured() {
-    if (wifiSettings.ssid.isEmpty() || wifiSettings.password.isEmpty())
-        return false;
-    else
-        return true;
 }
 
 bool SettingsManager::deleteAppSettings() {
@@ -90,10 +79,10 @@ bool SettingsManager::deleteAppSettings() {
     return rc;
 }
 
-bool SettingsManager::deleteWifiSettings() {
+bool SettingsManager::deleteNetworkSettings() {
     bool rc;
     Preferences preferences;
-    rc = preferences.begin("wifiSettings", false); 
+    rc = preferences.begin("networkSettings", false); 
     if (rc)
         rc = preferences.clear();
     preferences.end();
@@ -111,8 +100,6 @@ String SettingsManager::generateNewPairingCode() {
     hasher.doUpdate(getTimestampString().c_str()); // current time (if NTP is available)
     hasher.doUpdate(appSettings.mqttUsername.c_str());
     hasher.doUpdate(appSettings.mqttPassword.c_str());
-    hasher.doUpdate(wifiSettings.ssid.c_str());
-    hasher.doUpdate(wifiSettings.password.c_str());
 
     /* Compute the final hash */
     byte hash[SHA256_SIZE];

@@ -2,7 +2,14 @@
   Main of FingerprintDoorbell 
  ****************************************************/
 
-#include <WiFi.h>
+#define ETH_PHY_TYPE ETH_PHY_LAN8720
+#define ETH_PHY_ADDR  0
+#define ETH_PHY_MDC   23
+#define ETH_PHY_MDIO  18
+#define ETH_PHY_POWER -1
+#define ETH_CLK_MODE  ETH_CLOCK_GPIO0_IN
+
+#include <ETH.h>
 #include <DNSServer.h>
 #include <time.h>
 #include <ESPAsyncWebServer.h>
@@ -13,20 +20,12 @@
 #include "SettingsManager.h"
 #include "global.h"
 
-enum class Mode { scan, enroll, wificonfig, maintenance };
+enum class Mode { scan, enroll, maintenance };
 
 const char* VersionInfo = "0.4";
 
-// ===================================================================================================================
-// Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!
-// ===================================================================================================================
-const char* WifiConfigSsid = "FingerprintDoorbell-Config"; // SSID used for WiFi when in Access Point mode for configuration
-const char* WifiConfigPassword = "12345678"; // password used for WiFi when in Access Point mode for configuration. Min. 8 chars needed!
-IPAddress   WifiConfigIp(192, 168, 4, 1); // IP of access point in wifi config mode
-
 const long  gmtOffset_sec = 0; // UTC Time
 const int   daylightOffset_sec = 0; // UTC Time
-const int   doorbellOutputPin = 19; // pin connected to the doorbell (when using hardware connection instead of mqtt to ring the bell)
 
 #ifdef CUSTOM_GPIOS
   const int   customOutput1 = 18; // not used internally, but can be set over MQTT
@@ -40,7 +39,6 @@ const int   doorbellOutputPin = 19; // pin connected to the doorbell (when using
 const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
 bool shouldReboot = false;
-unsigned long wifiReconnectPreviousMillis = 0;
 unsigned long mqttReconnectPreviousMillis = 0;
 
 String enrollId;
@@ -117,16 +115,9 @@ String processor(const String& var){
   } else if (var == "FINGERLIST") {
     return fingerManager.getFingerListAsHtmlOptionList();
   } else if (var == "HOSTNAME") {
-    return settingsManager.getWifiSettings().hostname;
+    return settingsManager.getNetworkSettings().hostname;
   } else if (var == "VERSIONINFO") {
     return VersionInfo;
-  } else if (var == "WIFI_SSID") {
-    return settingsManager.getWifiSettings().ssid;
-  } else if (var == "WIFI_PASSWORD") {
-    if (settingsManager.getWifiSettings().password.isEmpty())
-      return "";
-    else
-      return "********"; // for security reasons the wifi password will not left the device once configured
   } else if (var == "MQTT_SERVER") {
     return settingsManager.getAppSettings().mqttServer;
   } else if (var == "MQTT_USERNAME") {
@@ -210,43 +201,6 @@ bool checkPairingValid() {
   }
 }
 
-
-bool initWifi() {
-  // Connect to Wi-Fi
-  WifiSettings wifiSettings = settingsManager.getWifiSettings();
-  WiFi.mode(WIFI_STA);
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
-  WiFi.setHostname(wifiSettings.hostname.c_str()); //define hostname
-  WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
-  int counter = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Waiting for WiFi connection...");
-    counter++;
-    if (counter > 30)
-      return false;
-  }
-  Serial.println("Connected!");
-
-  // Print ESP32 Local IP Address
-  Serial.println(WiFi.localIP());
-
-  return true;
-}
-
-void initWiFiAccessPointForConfiguration() {
-  WiFi.softAPConfig(WifiConfigIp, WifiConfigIp, IPAddress(255, 255, 255, 0));
-  WiFi.softAP(WifiConfigSsid, WifiConfigPassword);
-
-  // if DNSServer is started with "*" for domain name, it will reply with
-  // provided IP to all DNS request
-  dnsServer.start(DNS_PORT, "*", WifiConfigIp);
-
-  Serial.print("AP IP address: ");
-  Serial.println(WifiConfigIp); 
-}
-
-
 void startWebserver(){
   
   // Initialize SPIFFS
@@ -257,172 +211,129 @@ void startWebserver(){
 
   // Init time by NTP Client
   configTime(gmtOffset_sec, daylightOffset_sec, settingsManager.getAppSettings().ntpServer.c_str());
+
+  // =======================
+  // normal operating mode
+  // =======================
+  events.onConnect([](AsyncEventSourceClient *client){
+    if(client->lastId()){
+      Serial.printf("Client reconnected! Last message ID it got was: %u\n", client->lastId());
+    }
+    //send event with message "ready", id current millis
+    // and set reconnect delay to 1 second
+    client->send(getLogMessagesAsHtml().c_str(),"message",millis(),1000);
+  });
+  webServer.addHandler(&events);
+
   
-  // webserver for normal operating or wifi config?
-  if (currentMode == Mode::wificonfig)
-  {
-    // =================
-    // WiFi config mode
-    // =================
+  // Route for root / web page
+  webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
 
-    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(SPIFFS, "/wificonfig.html", String(), false, processor);
-    });
+  webServer.on("/enroll", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("startEnrollment"))
+    {
+      enrollId = request->arg("newFingerprintId");
+      enrollName = request->arg("newFingerprintName");
+      currentMode = Mode::enroll;
+    }
+    request->redirect("/");
+  });
 
-    webServer.on("/save", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("hostname"))
+  webServer.on("/editFingerprints", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("selectedFingerprint"))
+    {
+      if(request->hasArg("btnDelete"))
       {
-        Serial.println("Save wifi config");
-        WifiSettings settings = settingsManager.getWifiSettings();
-        settings.hostname = request->arg("hostname");
-        settings.ssid = request->arg("ssid");
-        if (request->arg("password").equals("********")) // password is replaced by wildcards when given to the browser, so if the user didn't changed it, don't save it
-          settings.password = settingsManager.getWifiSettings().password; // use the old, already saved, one
-        else
-          settings.password = request->arg("password");
-        settingsManager.saveWifiSettings(settings);
-        shouldReboot = true;
+        int id = request->arg("selectedFingerprint").toInt();
+        waitForMaintenanceMode();
+        fingerManager.deleteFinger(id);
+        currentMode = Mode::scan;
       }
-      request->redirect("/");
-    });
-
-
-    webServer.onNotFound([](AsyncWebServerRequest *request){
-      AsyncResponseStream *response = request->beginResponseStream("text/html");
-      response->printf("<!DOCTYPE html><html><head><title>FingerprintDoorbell</title><meta http-equiv=\"refresh\" content=\"0; url=http://%s\" /></head><body>", WiFi.softAPIP().toString().c_str());
-      response->printf("<p>Please configure your WiFi settings <a href='http://%s'>here</a> to connect FingerprintDoorbell to your home network.</p>", WiFi.softAPIP().toString().c_str());
-      response->print("</body></html>");
-      request->send(response);
-    });
-
-  }
-  else
-  {
-    // =======================
-    // normal operating mode
-    // =======================
-    events.onConnect([](AsyncEventSourceClient *client){
-      if(client->lastId()){
-        Serial.printf("Client reconnected! Last message ID it got was: %u\n", client->lastId());
-      }
-      //send event with message "ready", id current millis
-      // and set reconnect delay to 1 second
-      client->send(getLogMessagesAsHtml().c_str(),"message",millis(),1000);
-    });
-    webServer.addHandler(&events);
-
-    
-    // Route for root / web page
-    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(SPIFFS, "/index.html", String(), false, processor);
-    });
-
-    webServer.on("/enroll", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("startEnrollment"))
+      else if (request->hasArg("btnRename"))
       {
-        enrollId = request->arg("newFingerprintId");
-        enrollName = request->arg("newFingerprintName");
-        currentMode = Mode::enroll;
+        int id = request->arg("selectedFingerprint").toInt();
+        String newName = request->arg("renameNewName");
+        fingerManager.renameFinger(id, newName);
       }
-      request->redirect("/");
-    });
+    }
+    request->redirect("/");  
+  });
 
-    webServer.on("/editFingerprints", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("selectedFingerprint"))
-      {
-        if(request->hasArg("btnDelete"))
-        {
-          int id = request->arg("selectedFingerprint").toInt();
-          waitForMaintenanceMode();
-          fingerManager.deleteFinger(id);
-          currentMode = Mode::scan;
-        }
-        else if (request->hasArg("btnRename"))
-        {
-          int id = request->arg("selectedFingerprint").toInt();
-          String newName = request->arg("renameNewName");
-          fingerManager.renameFinger(id, newName);
-        }
-      }
+  webServer.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("btnSaveSettings"))
+    {
+      Serial.println("Save settings");
+      AppSettings settings = settingsManager.getAppSettings();
+      settings.mqttServer = request->arg("mqtt_server");
+      settings.mqttUsername = request->arg("mqtt_username");
+      settings.mqttPassword = request->arg("mqtt_password");
+      settings.mqttRootTopic = request->arg("mqtt_rootTopic");
+      settings.ntpServer = request->arg("ntpServer");
+      settingsManager.saveAppSettings(settings);
       request->redirect("/");  
-    });
-
-    webServer.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("btnSaveSettings"))
-      {
-        Serial.println("Save settings");
-        AppSettings settings = settingsManager.getAppSettings();
-        settings.mqttServer = request->arg("mqtt_server");
-        settings.mqttUsername = request->arg("mqtt_username");
-        settings.mqttPassword = request->arg("mqtt_password");
-        settings.mqttRootTopic = request->arg("mqtt_rootTopic");
-        settings.ntpServer = request->arg("ntpServer");
-        settingsManager.saveAppSettings(settings);
-        request->redirect("/");  
-        shouldReboot = true;
-      } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
-      }
-    });
+      shouldReboot = true;
+    } else {
+      request->send(SPIFFS, "/settings.html", String(), false, processor);
+    }
+  });
 
 
-    webServer.on("/pairing", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("btnDoPairing"))
-      {
-        Serial.println("Do (re)pairing");
-        doPairing();
-        request->redirect("/");  
-      } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
-      }
-    });
+  webServer.on("/pairing", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("btnDoPairing"))
+    {
+      Serial.println("Do (re)pairing");
+      doPairing();
+      request->redirect("/");  
+    } else {
+      request->send(SPIFFS, "/settings.html", String(), false, processor);
+    }
+  });
 
 
 
-    webServer.on("/factoryReset", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("btnFactoryReset"))
-      {
-        notifyClients("Factory reset initiated...");
-        
-        if (!fingerManager.deleteAll())
-          notifyClients("Finger database could not be deleted.");
-        
-        if (!settingsManager.deleteAppSettings())
-          notifyClients("App settings could not be deleted.");
-
-        if (!settingsManager.deleteWifiSettings())
-          notifyClients("Wifi settings could not be deleted.");
-        
-        request->redirect("/");  
-        shouldReboot = true;
-      } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
-      }
-    });
+  webServer.on("/factoryReset", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("btnFactoryReset"))
+    {
+      notifyClients("Factory reset initiated...");
+      
+      if (!fingerManager.deleteAll())
+        notifyClients("Finger database could not be deleted.");
+      
+      if (!settingsManager.deleteAppSettings())
+        notifyClients("App settings could not be deleted.");
+      
+      request->redirect("/");  
+      shouldReboot = true;
+    } else {
+      request->send(SPIFFS, "/settings.html", String(), false, processor);
+    }
+  });
 
 
-    webServer.on("/deleteAllFingerprints", HTTP_GET, [](AsyncWebServerRequest *request){
-      if(request->hasArg("btnDeleteAllFingerprints"))
-      {
-        notifyClients("Deleting all fingerprints...");
-        
-        if (!fingerManager.deleteAll())
-          notifyClients("Finger database could not be deleted.");
-        
-        request->redirect("/");  
-        
-      } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
-      }
-    });
+  webServer.on("/deleteAllFingerprints", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(request->hasArg("btnDeleteAllFingerprints"))
+    {
+      notifyClients("Deleting all fingerprints...");
+      
+      if (!fingerManager.deleteAll())
+        notifyClients("Finger database could not be deleted.");
+      
+      request->redirect("/");  
+      
+    } else {
+      request->send(SPIFFS, "/settings.html", String(), false, processor);
+    }
+  });
 
 
-    webServer.onNotFound([](AsyncWebServerRequest *request){
-      request->send(404);
-    });
+  webServer.onNotFound([](AsyncWebServerRequest *request){
+    request->send(404);
+  });
 
     
-  } // end normal operating mode
+  // end normal operating mode
 
 
   // common url callbacks
@@ -500,9 +411,9 @@ void connectMqttClient() {
     String lastWillTopic = settingsManager.getAppSettings().mqttRootTopic + "/lastLogMessage";
     String lastWillMessage = "FingerprintDoorbell disconnected unexpectedly";
     if (settingsManager.getAppSettings().mqttUsername.isEmpty() || settingsManager.getAppSettings().mqttPassword.isEmpty())
-      connectResult = mqttClient.connect(settingsManager.getWifiSettings().hostname.c_str(),lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
+      connectResult = mqttClient.connect(settingsManager.getNetworkSettings().hostname.c_str(),lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
     else
-      connectResult = mqttClient.connect(settingsManager.getWifiSettings().hostname.c_str(), settingsManager.getAppSettings().mqttUsername.c_str(), settingsManager.getAppSettings().mqttPassword.c_str(), lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
+      connectResult = mqttClient.connect(settingsManager.getNetworkSettings().hostname.c_str(), settingsManager.getAppSettings().mqttUsername.c_str(), settingsManager.getAppSettings().mqttPassword.c_str(), lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
 
     if (connectResult) {
       // success
@@ -562,14 +473,10 @@ void doScan()
     case ScanResult::noMatchFound:
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {
-        digitalWrite(doorbellOutputPin, HIGH);
         mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
-        Serial.println("MQTT message sent: ring the bell!");
-        delay(1000);
-        digitalWrite(doorbellOutputPin, LOW); 
       } else {
         delay(1000); // wait some time before next scan to let the LED blink
       }
@@ -610,10 +517,65 @@ void reboot()
   espClient.stop();
   dnsServer.stop();
   webServer.end();
-  WiFi.disconnect();
   ESP.restart();
 }
 
+
+// React to Ethernet events:
+void WiFiEvent(WiFiEvent_t event)
+{
+  Serial.print("ETH: ");
+  Serial.println(event);
+
+  switch (event) {
+
+    case ARDUINO_EVENT_ETH_START:
+      // This will happen during setup, when the Ethernet service starts
+      Serial.println("ETH Started");
+      //set eth hostname here
+      ETH.setHostname("esp32");//settingsManager.getNetworkSettings().hostname.c_str());
+      break;
+
+    case ARDUINO_EVENT_ETH_CONNECTED:
+      // This will happen when the Ethernet cable is plugged 
+      Serial.println("ETH Connected");
+      break;
+
+    case ARDUINO_EVENT_ETH_GOT_IP:
+    // This will happen when we obtain an IP address through DHCP:
+      Serial.print("Got an IP Address for ETH MAC: ");
+      Serial.print(ETH.macAddress());
+      Serial.print(", IPv4: ");
+      Serial.print(ETH.localIP());
+      //if (ETH.fullDuplex()) {
+      //  Serial.print(", FULL_DUPLEX");
+      //}
+      Serial.print(", ");
+      Serial.print(ETH.linkSpeed());
+      Serial.println("Mbps");
+      //eth_connected = true;
+
+      // Uncomment to automatically make a test connection to a server:
+      // testClient( "192.168.0.1", 80 );
+
+      break;
+
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+      // This will happen when the Ethernet cable is unplugged 
+      Serial.println("ETH Disconnected");
+      //eth_connected = false;
+      break;
+
+    case ARDUINO_EVENT_ETH_STOP:
+      // This will happen when the ETH interface is stopped but this never happens
+      Serial.println("ETH Stopped");
+      //eth_connected = false;
+      break;
+
+    default:
+      break;
+  }
+}
 
 void setup()
 {
@@ -622,8 +584,16 @@ void setup()
   while (!Serial);  // For Yun/Leo/Micro/Zero/...
   delay(100);
 
+  // Add a handler for network events. This is misnamed "WiFi" because the ESP32 is historically WiFi only,
+  // but in our case, this will react to Ethernet events.
+  Serial.println("Registering event handler for ETH events...");
+  WiFi.onEvent(WiFiEvent);
+  
+  // Starth Ethernet (this does NOT start WiFi at the same time)
+  Serial.println("Starting ETH interface...");
+  ETH.begin();
+
   // initialize GPIOs
-  pinMode(doorbellOutputPin, OUTPUT); 
   #ifdef CUSTOM_GPIOS
     pinMode(customOutput1, OUTPUT); 
     pinMode(customOutput2, OUTPUT); 
@@ -631,7 +601,6 @@ void setup()
     pinMode(customInput2, INPUT_PULLDOWN);
   #endif  
 
-  settingsManager.loadWifiSettings();
   settingsManager.loadAppSettings();
 
   fingerManager.connect();
@@ -639,49 +608,33 @@ void setup()
   if (!checkPairingValid())
     notifyClients("Security issue! Pairing with sensor is invalid. This could potentially be an attack! If the sensor is new or has been replaced by you do a (re)pairing in settings page. MQTT messages regarding matching fingerprints will not been sent until pairing is valid again.");
 
-  if (fingerManager.isFingerOnSensor() || !settingsManager.isWifiConfigured())
-  {
-    // ring touched during startup or no wifi settings stored -> wifi config mode
-    currentMode = Mode::wificonfig;
-    Serial.println("Started WiFi-Config mode");
-    fingerManager.setLedRingWifiConfig();
-    initWiFiAccessPointForConfiguration();
-    startWebserver();
+  Serial.println("Started normal operating mode (ETH)");
+  currentMode = Mode::scan;
 
+  startWebserver();
+  if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
+    mqttConfigValid = false;
+    notifyClients("Error: No MQTT Broker is configured! Please go to settings and enter your server URL + user credentials.");
   } else {
-    Serial.println("Started normal operating mode");
-    currentMode = Mode::scan;
-    if (initWifi()) {
-      startWebserver();
-      if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
-        mqttConfigValid = false;
-        notifyClients("Error: No MQTT Broker is configured! Please go to settings and enter your server URL + user credentials.");
-      } else {
-        delay(5000);
-        IPAddress mqttServerIp;
-        if (WiFi.hostByName(settingsManager.getAppSettings().mqttServer.c_str(), mqttServerIp))
-        {
-          mqttConfigValid = true;
-          Serial.println("IP used for MQTT server: " + mqttServerIp.toString());
-          mqttClient.setServer(mqttServerIp , 1883);
-          mqttClient.setCallback(mqttCallback);
-          connectMqttClient();
-        }
-        else {
-          mqttConfigValid = false;
-          notifyClients("MQTT Server '" + settingsManager.getAppSettings().mqttServer + "' not found. Please check your settings.");
-        }
-      }
-      if (fingerManager.connected)
-        fingerManager.setLedRingReady();
-      else
-        fingerManager.setLedRingError();
-    }  else {
-      fingerManager.setLedRingError();
-      shouldReboot = true;
+    delay(5000);
+    IPAddress mqttServerIp;
+    if (WiFi.hostByName(settingsManager.getAppSettings().mqttServer.c_str(), mqttServerIp))
+    {
+      mqttConfigValid = true;
+      Serial.println("IP used for MQTT server: " + mqttServerIp.toString());
+      mqttClient.setServer(mqttServerIp , 1883);
+      mqttClient.setCallback(mqttCallback);
+      connectMqttClient();
     }
-
+    else {
+      mqttConfigValid = false;
+      notifyClients("MQTT Server '" + settingsManager.getAppSettings().mqttServer + "' not found. Please check your settings.");
+    }
   }
+  if (fingerManager.connected)
+    fingerManager.setLedRingReady();
+  else
+    fingerManager.setLedRingError();
   
 }
 
@@ -693,27 +646,17 @@ void loop()
   }
   
   // Reconnect handling
-  if (currentMode != Mode::wificonfig)
-  {
-    unsigned long currentMillis = millis();
-    // reconnect WiFi if down for 30s
-    if ((WiFi.status() != WL_CONNECTED) && (currentMillis - wifiReconnectPreviousMillis >= 30000ul)) {
-      Serial.println("Reconnecting to WiFi...");
-      WiFi.disconnect();
-      WiFi.reconnect();
-      wifiReconnectPreviousMillis = currentMillis;
-    }
+  unsigned long currentMillis = millis();
 
-    // reconnect mqtt if down
-    if (!settingsManager.getAppSettings().mqttServer.isEmpty()) {
-      if (!mqttClient.connected() && (currentMillis - mqttReconnectPreviousMillis >= 30000ul)) {
-        connectMqttClient();
-        mqttReconnectPreviousMillis = currentMillis;
-      }
-      mqttClient.loop();
+  // reconnect mqtt if down
+  if (!settingsManager.getAppSettings().mqttServer.isEmpty()) {
+    if (!mqttClient.connected() && (currentMillis - mqttReconnectPreviousMillis >= 30000ul)) {
+      connectMqttClient();
+      mqttReconnectPreviousMillis = currentMillis;
     }
+    mqttClient.loop();
+
   }
-
 
   // do the actual loop work
   switch (currentMode)
@@ -726,10 +669,6 @@ void loop()
   case Mode::enroll:
     doEnroll();
     currentMode = Mode::scan; // switch back to scan mode after enrollment is done
-    break;
-  
-  case Mode::wificonfig:
-    dnsServer.processNextRequest(); // used for captive portal redirect
     break;
 
   case Mode::maintenance:
@@ -770,4 +709,3 @@ void loop()
   #endif  
 
 }
-

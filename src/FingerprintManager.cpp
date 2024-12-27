@@ -451,10 +451,6 @@ void FingerprintManager::setLedRingError() {
   finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_RED);
 }
 
-void FingerprintManager::setLedRingWifiConfig() {
-  finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 250, FINGERPRINT_LED_RED);
-}
-
 void FingerprintManager::setLedRingReady() {
   /*
   if (!ignoreTouchRing)
