@@ -456,10 +456,12 @@ void FingerprintManager::setLedRingWifiConfig() {
 }
 
 void FingerprintManager::setLedRingReady() {
+  /*
   if (!ignoreTouchRing)
     finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 250, FINGERPRINT_LED_BLUE);
   else
     finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_BLUE); // just an indicator for me to see if touch ring is active or not
+  */
 }
 
 bool FingerprintManager::deleteAll() {

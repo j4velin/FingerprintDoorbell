@@ -5,7 +5,7 @@
 #include <Preferences.h>
 #include "global.h"
 
-#define mySerial Serial2
+#define mySerial Serial1
 
 #define FINGERPRINT_WRITENOTEPAD 0x18 // Write Notepad on sensor
 #define FINGERPRINT_READNOTEPAD 0x19 // Read Notepad from sensor
