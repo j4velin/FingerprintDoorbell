@@ -20,14 +20,8 @@ const char* VersionInfo = "0.4";
 const long  gmtOffset_sec = 0; // UTC Time
 const int   daylightOffset_sec = 0; // UTC Time
 
-#ifdef CUSTOM_GPIOS
-  const int   customOutput1 = 18; // not used internally, but can be set over MQTT
-  const int   customOutput2 = 26; // not used internally, but can be set over MQTT
-  const int   customInput1 = 21; // not used internally, but changes are published over MQTT
-  const int   customInput2 = 22; // not used internally, but changes are published over MQTT
-  bool customInput1Value = false;
-  bool customInput2Value = false;
-#endif
+const int doorbellPin = 14; // doorbell button
+bool doorbellPressed = false;
 
 const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
@@ -372,26 +366,6 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
       fingerManager.setIgnoreTouchRing(false);
     }
   }
-
-  #ifdef CUSTOM_GPIOS
-    if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/customOutput1") {
-      if(messageTemp == "on"){
-        digitalWrite(customOutput1, HIGH); 
-      }
-      else if(messageTemp == "off"){
-        digitalWrite(customOutput1, LOW); 
-      }
-    }
-    if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/customOutput2") {
-      if(messageTemp == "on"){
-        digitalWrite(customOutput2, HIGH); 
-      }
-      else if(messageTemp == "off"){
-        digitalWrite(customOutput2, LOW); 
-      }
-    }
-  #endif  
-
 }
 
 void connectMqttClient() {
@@ -413,13 +387,6 @@ void connectMqttClient() {
       Serial.println("connected");
       // Subscribe
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
-      #ifdef CUSTOM_GPIOS
-        mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/customOutput1").c_str(), 1); // QoS = 1 (at least once)
-        mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/customOutput2").c_str(), 1); // QoS = 1 (at least once)
-      #endif
-
-
-
     } else {
       if (mqttClient.state() == 4 || mqttClient.state() == 5) {
         mqttConfigValid = false;
@@ -442,7 +409,6 @@ void doScan()
       // standard case, occurs every iteration when no finger touchs the sensor
       if (match.scanResult != lastMatch.scanResult) {
         Serial.println("no finger");
-        mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
@@ -452,7 +418,6 @@ void doScan()
       notifyClients( String("Match Found: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );
       if (match.scanResult != lastMatch.scanResult) {
         if (checkPairingValid()) {
-          mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
           mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), String(match.matchId).c_str());
           mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), match.matchName.c_str());
           mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), String(match.matchConfidence).c_str());
@@ -466,7 +431,6 @@ void doScan()
     case ScanResult::noMatchFound:
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {
-        mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
@@ -566,12 +530,7 @@ void setup()
   ETH.begin();
 
   // initialize GPIOs
-  #ifdef CUSTOM_GPIOS
-    pinMode(customOutput1, OUTPUT); 
-    pinMode(customOutput2, OUTPUT); 
-    pinMode(customInput1, INPUT_PULLDOWN);
-    pinMode(customInput2, INPUT_PULLDOWN);
-  #endif  
+  pinMode(doorbellPin, INPUT_PULLUP);
 
   settingsManager.loadAppSettings();
 
@@ -653,31 +612,19 @@ void loop()
   if (needMaintenanceMode)
     currentMode = Mode::maintenance;
 
-  #ifdef CUSTOM_GPIOS
-    // read custom inputs and publish by MQTT
-    bool i1;
-    bool i2;
-    i1 = (digitalRead(customInput1) == HIGH);
-    i2 = (digitalRead(customInput2) == HIGH);
+  // read doorbell input and publish by MQTT
+  bool doorbellCurrentlyPressed;
+  doorbellCurrentlyPressed = (digitalRead(doorbellPin) == LOW);
 
-    String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
-    if (i1 != customInput1Value) {
-        if (i1)
-          mqttClient.publish((String(mqttRootTopic) + "/customInput1").c_str(), "on");      
-        else
-          mqttClient.publish((String(mqttRootTopic) + "/customInput1").c_str(), "off");      
-    }
+  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+  if (doorbellCurrentlyPressed != doorbellPressed) {
+    Serial.print("doorbell pressed:");
+    Serial.println(doorbellCurrentlyPressed);
+    if (doorbellCurrentlyPressed)
+      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");      
+    else
+      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");      
+  }
 
-    if (i2 != customInput2Value) {
-        if (i2)
-          mqttClient.publish((String(mqttRootTopic) + "/customInput2").c_str(), "on");      
-        else
-          mqttClient.publish((String(mqttRootTopic) + "/customInput2").c_str(), "off");  
-    }
-
-    customInput1Value = i1;
-    customInput2Value = i2;
-
-  #endif  
-
+  doorbellPressed = doorbellCurrentlyPressed;
 }

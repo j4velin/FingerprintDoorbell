@@ -10,7 +10,14 @@ For more information, take a look at the [original README](https://github.com/fr
 - enabled ethernet connection (DHCP)
 - disabled breathing LED when idle
 - disabled external ringer signal (the pin is used in the ETH connection)
+- use GPIO14 as input for the doorbell ring event (for a dedicated button to just ring)
 
 ## Wiring
 
 ![Wiring](images/wiring.png)
+
+For the external ringer button I used:
+L1 -> 5.5V
+L2 -> GND
+C -> GND
+NO -> GPIO14
