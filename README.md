@@ -16,8 +16,12 @@ For more information, take a look at the [original README](https://github.com/fr
 
 ![Wiring](images/wiring.png)
 
-For the external ringer button I used:
-L1 -> 5.5V
+For the external doorbell button I used:
+L1 -> 5V
 L2 -> GND
 C -> GND
 NO -> GPIO14
+
+External buzzer (buzzes while doorbell button is pressed):
++ -> GPIO15
+- -> GND

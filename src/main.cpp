@@ -23,6 +23,8 @@ const int   daylightOffset_sec = 0; // UTC Time
 const int doorbellPin = 14; // doorbell button
 bool doorbellPressed = false;
 
+const int buzzerPin = 15; // buzzer when the doorbell button is pressed
+
 const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
 bool shouldReboot = false;
@@ -531,6 +533,11 @@ void setup()
 
   // initialize GPIOs
   pinMode(doorbellPin, INPUT_PULLUP);
+  pinMode(buzzerPin, OUTPUT);
+  Serial.print("Doorbell button pin: ");
+  Serial.println(doorbellPin);
+  Serial.print("Buzzer pin: ");
+  Serial.println(buzzerPin);
 
   settingsManager.loadAppSettings();
 
@@ -567,6 +574,9 @@ void setup()
   else
     fingerManager.setLedRingError();
   
+  tone(buzzerPin, 200, 500);
+  tone(buzzerPin, 300, 500);
+  tone(buzzerPin, 400, 500);
 }
 
 void loop()
@@ -616,14 +626,18 @@ void loop()
   bool doorbellCurrentlyPressed;
   doorbellCurrentlyPressed = (digitalRead(doorbellPin) == LOW);
 
-  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
   if (doorbellCurrentlyPressed != doorbellPressed) {
-    Serial.print("doorbell pressed:");
-    Serial.println(doorbellCurrentlyPressed);
-    if (doorbellCurrentlyPressed)
-      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");      
-    else
+    String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+    //Serial.print("doorbell pressed:");
+    //Serial.println(doorbellCurrentlyPressed);
+    if (doorbellCurrentlyPressed) {
+      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
+      tone(buzzerPin, 200);      
+    }
+    else {
+      noTone(buzzerPin);
       mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");      
+    }
   }
 
   doorbellPressed = doorbellCurrentlyPressed;

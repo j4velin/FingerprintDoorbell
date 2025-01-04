@@ -7,6 +7,8 @@ bool FingerprintManager::connect() {
   
     // initialize input pins
     pinMode(touchRingPin, INPUT_PULLDOWN);
+    Serial.print("TouchRing pin: ");
+    Serial.println(touchRingPin);
 
     Serial.println("\n\nAdafruit finger detect test");
 
