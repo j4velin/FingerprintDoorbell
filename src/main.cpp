@@ -632,7 +632,9 @@ void loop()
     //Serial.println(doorbellCurrentlyPressed);
     if (doorbellCurrentlyPressed) {
       mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
-      tone(buzzerPin, 200);      
+      tone(buzzerPin, 400, 500);
+      tone(buzzerPin, 500, 500);
+      tone(buzzerPin, 600, 500);   
     }
     else {
       noTone(buzzerPin);
