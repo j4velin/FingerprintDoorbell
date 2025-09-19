@@ -19,7 +19,6 @@ bool SettingsManager::loadAppSettings() {
         appSettings.mqttUsername = preferences.getString("mqttUsername", String(""));
         appSettings.mqttPassword = preferences.getString("mqttPassword", String(""));
         appSettings.mqttRootTopic = preferences.getString("mqttRootTopic", String("fingerprintDoorbell"));
-        appSettings.ntpServer = preferences.getString("ntpServer", String("pool.ntp.org"));
         appSettings.sensorPin = preferences.getString("sensorPin", "00000000");
         appSettings.sensorPairingCode = preferences.getString("pairingCode", "");
         appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);
@@ -44,7 +43,6 @@ void SettingsManager::saveAppSettings() {
     preferences.putString("mqttUsername", appSettings.mqttUsername);
     preferences.putString("mqttPassword", appSettings.mqttPassword);
     preferences.putString("mqttRootTopic", appSettings.mqttRootTopic);
-    preferences.putString("ntpServer", appSettings.ntpServer);
     preferences.putString("sensorPin", appSettings.sensorPin);
     preferences.putString("pairingCode", appSettings.sensorPairingCode);
     preferences.putBool("pairingValid", appSettings.sensorPairingValid);
@@ -97,7 +95,6 @@ String SettingsManager::generateNewPairingCode() {
     /* Put some unique values as input in our new hash */
     hasher.doUpdate( String(esp_random()).c_str() ); // random number
     hasher.doUpdate( String(millis()).c_str() ); // time since boot
-    hasher.doUpdate(getTimestampString().c_str()); // current time (if NTP is available)
     hasher.doUpdate(appSettings.mqttUsername.c_str());
     hasher.doUpdate(appSettings.mqttPassword.c_str());
 

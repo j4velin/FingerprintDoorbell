@@ -4,7 +4,6 @@
 
 #include <ETH.h>
 #include <DNSServer.h>
-#include <time.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
@@ -15,7 +14,7 @@
 
 enum class Mode { scan, enroll, maintenance };
 
-const char* VersionInfo = "0.4";
+const char* VersionInfo = "0.4.1";
 
 const long  gmtOffset_sec = 0; // UTC Time
 const int   daylightOffset_sec = 0; // UTC Time
@@ -69,19 +68,6 @@ String getLogMessagesAsHtml() {
   return html;
 }
 
-String getTimestampString(){
-  struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-    return "no time";
-  }
-  
-  char buffer[25];
-  strftime(buffer,sizeof(buffer),"%Y-%m-%d %H:%M:%S %Z", &timeinfo);
-  String datetime = String(buffer);
-  return datetime;
-}
-
 /* wait for maintenance mode or timeout 5s */
 bool waitForMaintenanceMode() {
   needMaintenanceMode = true;
@@ -115,8 +101,6 @@ String processor(const String& var){
     return settingsManager.getAppSettings().mqttPassword;
   } else if (var == "MQTT_ROOTTOPIC") {
     return settingsManager.getAppSettings().mqttRootTopic;
-  } else if (var == "NTP_SERVER") {
-    return settingsManager.getAppSettings().ntpServer;
   }
 
   return String();
@@ -125,9 +109,8 @@ String processor(const String& var){
 
 // send LastMessage to websocket clients
 void notifyClients(String message) {
-  String messageWithTimestamp = "[" + getTimestampString() + "]: " + message;
-  Serial.println(messageWithTimestamp);
-  addLogMessage(messageWithTimestamp);
+  Serial.println(message);
+  addLogMessage(message);
   events.send(getLogMessagesAsHtml().c_str(),"message",millis(),1000);
   
   String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
@@ -198,9 +181,6 @@ void startWebserver(){
     return;
   }
 
-  // Init time by NTP Client
-  configTime(gmtOffset_sec, daylightOffset_sec, settingsManager.getAppSettings().ntpServer.c_str());
-
   // =======================
   // normal operating mode
   // =======================
@@ -259,7 +239,6 @@ void startWebserver(){
       settings.mqttUsername = request->arg("mqtt_username");
       settings.mqttPassword = request->arg("mqtt_password");
       settings.mqttRootTopic = request->arg("mqtt_rootTopic");
-      settings.ntpServer = request->arg("ntpServer");
       settingsManager.saveAppSettings(settings);
       request->redirect("/");  
       shouldReboot = true;
