@@ -17,3 +17,6 @@ For more information, take a look at the [original README](https://github.com/fr
 ## Wiring
 
 ![Wiring](images/wiring.png)
+
+## Case
+A suitable 3D-printable case can be found on my [makerworld profile](https://makerworld.com/en/models/1006813-case-for-the-olimex-esp32-poe-iso-board#profileId-985426)
