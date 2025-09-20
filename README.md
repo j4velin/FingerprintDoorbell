@@ -12,6 +12,7 @@ For more information, take a look at the [original README](https://github.com/fr
 - disabled external ringer signal (the pin is used in the ETH connection)
 - use GPIO14 as input for the doorbell ring event (for a dedicated button to just ring)
 - use GPIO15 as output for a buzzer for an acoustic feedback while the doorbell button is pressed
+- remove all NTP related code (see https://github.com/frickelzeugs/FingerprintDoorbell/issues/84)
 
 ## Wiring
 
