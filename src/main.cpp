@@ -311,7 +311,11 @@ void startWebserver(){
   });
 
   webServer.on("/bootstrap.min.css", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/bootstrap.min.css", "text/css");
+    // the file is stored pre-compressed to save flash and to speed up page loads over SPIFFS
+    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/bootstrap.min.css.gz", "text/css");
+    response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", "max-age=604800"); // static asset, only changes on a filesystem upload
+    request->send(response);
   });
 
 
