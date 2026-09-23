@@ -18,6 +18,8 @@ const char* deviceHostname = "FingerprintDoorbell"; // also used as the MQTT cli
 
 const int doorbellPin = 14; // doorbell button
 bool doorbellPressed = false;
+unsigned long missedRingMillis = 0; // when a ring could not be published because MQTT was down (0 = nothing pending)
+const unsigned long missedRingMaxAge = 5UL * 60UL * 1000UL; // don't replay a ring older than this
 
 const int buzzerPin = 15; // buzzer when the doorbell button is pressed
 
@@ -392,6 +394,17 @@ void connectMqttClient() {
     // Subscribe
     mqttClient.subscribe((settings.mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
     notifyClients("Connected to MQTT broker.");
+
+    // Resync the ring topic, and replay a press that happened while we were disconnected.
+    // Publishing "on" followed by the current state turns a missed press into a pulse; if
+    // nothing was missed this just repairs a ring state the broker may have missed.
+    String ringTopic = settings.mqttRootTopic + "/ring";
+    if (missedRingMillis != 0 && (millis() - missedRingMillis) < missedRingMaxAge) {
+      mqttClient.publish(ringTopic.c_str(), "on");
+      notifyClients("Replayed a doorbell ring that happened while MQTT was disconnected.");
+    }
+    missedRingMillis = 0;
+    mqttClient.publish(ringTopic.c_str(), doorbellPressed ? "on" : "off");
   } else {
     if (mqttClient.state() == 4 || mqttClient.state() == 5) {
       mqttConfigValid = false;
@@ -632,7 +645,8 @@ void loop()
     //Serial.print("doorbell pressed:");
     //Serial.println(doorbellCurrentlyPressed);
     if (doorbellCurrentlyPressed) {
-      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
+      if (!mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on"))
+        missedRingMillis = millis(); // broker unreachable, replay this once we are connected again
       tone(buzzerPin, 400, 500);
       tone(buzzerPin, 500, 500);
       tone(buzzerPin, 600, 500);   
