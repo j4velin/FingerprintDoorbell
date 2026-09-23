@@ -15,6 +15,7 @@
 enum class Mode { scan, enroll, maintenance };
 
 const char* VersionInfo = "0.4.1";
+const char* deviceHostname = "FingerprintDoorbell"; // also used as the MQTT client id
 
 const long  gmtOffset_sec = 0; // UTC Time
 const int   daylightOffset_sec = 0; // UTC Time
@@ -28,6 +29,9 @@ const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
 bool shouldReboot = false;
 unsigned long mqttReconnectPreviousMillis = 0;
+volatile bool ethHasIp = false;             // set from the ETH event task
+volatile bool mqttReconnectPending = true;  // ask loop() to try a connect without waiting for the retry interval
+bool mqttDnsFailureReported = false;        // avoid repeating the same DNS warning every 30 seconds
 
 String enrollId;
 String enrollName;
@@ -353,32 +357,56 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
   }
 }
 
+/* (Re)connects to the MQTT broker. Safe to call repeatedly, returns quickly if there is nothing to do. */
 void connectMqttClient() {
-  if (!mqttClient.connected() && mqttConfigValid) {
-    Serial.print("(Re)connect to MQTT broker...");
-    // Attempt to connect
-    bool connectResult;
-    
-    // connect with or witout authentication
-    String lastWillTopic = settingsManager.getAppSettings().mqttRootTopic + "/lastLogMessage";
-    String lastWillMessage = "FingerprintDoorbell disconnected unexpectedly";
-    if (settingsManager.getAppSettings().mqttUsername.isEmpty() || settingsManager.getAppSettings().mqttPassword.isEmpty())
-      connectResult = mqttClient.connect(settingsManager.getNetworkSettings().hostname.c_str(),lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
-    else
-      connectResult = mqttClient.connect(settingsManager.getNetworkSettings().hostname.c_str(), settingsManager.getAppSettings().mqttUsername.c_str(), settingsManager.getAppSettings().mqttPassword.c_str(), lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
+  if (mqttClient.connected() || !mqttConfigValid || !ethHasIp)
+    return;
 
-    if (connectResult) {
-      // success
-      Serial.println("connected");
-      // Subscribe
-      mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
+  AppSettings settings = settingsManager.getAppSettings();
+  if (settings.mqttServer.isEmpty())
+    return;
+
+  // Resolve on every attempt: at boot the network is often not up yet, and the broker's
+  // address may change while we are running.
+  IPAddress mqttServerIp;
+  if (!WiFi.hostByName(settings.mqttServer.c_str(), mqttServerIp)) {
+    if (!mqttDnsFailureReported) {
+      mqttDnsFailureReported = true; // only warn once, we keep retrying in the background
+      notifyClients("MQTT Server '" + settings.mqttServer + "' could not be resolved. Retrying every 30 seconds.");
     } else {
-      if (mqttClient.state() == 4 || mqttClient.state() == 5) {
-        mqttConfigValid = false;
-        notifyClients("Failed to connect to MQTT Server: bad credentials or not authorized. Will not try again, please check your settings.");
-      } else {
-        notifyClients(String("Failed to connect to MQTT Server, rc=") + mqttClient.state() + ", try again in 30 seconds");
-      }
+      Serial.println("MQTT server still not resolvable, will retry.");
+    }
+    return;
+  }
+  mqttDnsFailureReported = false;
+
+  Serial.print("(Re)connect to MQTT broker at ");
+  Serial.print(mqttServerIp);
+  Serial.print("...");
+  mqttClient.setServer(mqttServerIp, 1883);
+
+  String lastWillTopic = settings.mqttRootTopic + "/lastLogMessage";
+  String lastWillMessage = "FingerprintDoorbell disconnected unexpectedly";
+  bool connectResult;
+
+  // connect with or witout authentication
+  if (settings.mqttUsername.isEmpty() || settings.mqttPassword.isEmpty())
+    connectResult = mqttClient.connect(deviceHostname, lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
+  else
+    connectResult = mqttClient.connect(deviceHostname, settings.mqttUsername.c_str(), settings.mqttPassword.c_str(), lastWillTopic.c_str(), 1, false, lastWillMessage.c_str());
+
+  if (connectResult) {
+    // success
+    Serial.println("connected");
+    // Subscribe
+    mqttClient.subscribe((settings.mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
+    notifyClients("Connected to MQTT broker.");
+  } else {
+    if (mqttClient.state() == 4 || mqttClient.state() == 5) {
+      mqttConfigValid = false;
+      notifyClients("Failed to connect to MQTT Server: bad credentials or not authorized. Will not try again, please check your settings.");
+    } else {
+      notifyClients(String("Failed to connect to MQTT Server, rc=") + mqttClient.state() + ", try again in 30 seconds");
     }
   }
 }
@@ -483,12 +511,20 @@ void WiFiEvent(WiFiEvent_t event)
     case ARDUINO_EVENT_ETH_GOT_IP:
     // This will happen when we obtain an IP address through DHCP:
       Serial.print("IPv4: ");
-      Serial.print(ETH.localIP());
+      Serial.println(ETH.localIP());
+      ethHasIp = true;
+      mqttReconnectPending = true; // connect right away instead of waiting for the retry interval
       break;
 
     case ARDUINO_EVENT_ETH_DISCONNECTED:
       // This will happen when the Ethernet cable is unplugged 
       Serial.println("ETH Disconnected");
+      ethHasIp = false;
+      break;
+
+    case ARDUINO_EVENT_ETH_STOP:
+      Serial.println("ETH Stopped");
+      ethHasIp = false;
       break;
 
     default:
@@ -504,6 +540,9 @@ void setup()
   Serial.begin(115200);
   while (!Serial);  // For Yun/Leo/Micro/Zero/...
   delay(100);
+
+  // Load settings up front so nothing below runs against unloaded defaults.
+  settingsManager.loadAppSettings();
 
   // Add a handler for network events. This is misnamed "WiFi" because the ESP32 is historically WiFi only,
   // but in our case, this will react to Ethernet events.
@@ -522,8 +561,6 @@ void setup()
   Serial.print("Buzzer pin: ");
   Serial.println(buzzerPin);
 
-  settingsManager.loadAppSettings();
-
   fingerManager.connect();
   
   if (!checkPairingValid())
@@ -533,25 +570,17 @@ void setup()
   currentMode = Mode::scan;
 
   startWebserver();
+
+  mqttClient.setBufferSize(512); // default of 256 bytes silently drops our longer log messages
+  mqttClient.setCallback(mqttCallback);
   if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
     mqttConfigValid = false;
     notifyClients("Error: No MQTT Broker is configured! Please go to settings and enter your server URL + user credentials.");
-  } else {
-    delay(5000);
-    IPAddress mqttServerIp;
-    if (WiFi.hostByName(settingsManager.getAppSettings().mqttServer.c_str(), mqttServerIp))
-    {
-      mqttConfigValid = true;
-      Serial.println("IP used for MQTT server: " + mqttServerIp.toString());
-      mqttClient.setServer(mqttServerIp , 1883);
-      mqttClient.setCallback(mqttCallback);
-      connectMqttClient();
-    }
-    else {
-      mqttConfigValid = false;
-      notifyClients("MQTT Server '" + settingsManager.getAppSettings().mqttServer + "' not found. Please check your settings.");
-    }
   }
+  // The broker connection itself is established from loop() as soon as ethernet has an IP address.
+  // Doing it here with a fixed delay would fail on a PoE cold start, where link negotiation and
+  // DHCP regularly take longer than the ESP32 needs to boot.
+
   if (fingerManager.connected)
     fingerManager.setLedRingReady();
   else
@@ -572,15 +601,14 @@ void loop()
   // Reconnect handling
   unsigned long currentMillis = millis();
 
-  // reconnect mqtt if down
-  if (!settingsManager.getAppSettings().mqttServer.isEmpty()) {
-    if (!mqttClient.connected() && (currentMillis - mqttReconnectPreviousMillis >= 30000ul)) {
-      connectMqttClient();
-      mqttReconnectPreviousMillis = currentMillis;
-    }
-    mqttClient.loop();
-
+  // reconnect mqtt if down. connectMqttClient() decides itself whether there is anything to do.
+  if (ethHasIp && !mqttClient.connected() &&
+      (mqttReconnectPending || (currentMillis - mqttReconnectPreviousMillis >= 30000ul))) {
+    mqttReconnectPending = false;
+    mqttReconnectPreviousMillis = currentMillis;
+    connectMqttClient();
   }
+  mqttClient.loop();
 
   // do the actual loop work
   switch (currentMode)
