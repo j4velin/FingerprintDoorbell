@@ -1,16 +1,6 @@
 #include "SettingsManager.h"
 #include <Crypto.h>
 
-bool SettingsManager::loadNetworkSettings() {
-    Preferences preferences;
-    if (preferences.begin("networkSettings", true)) {
-        networkSettings.hostname = preferences.getString("hostname", String("FingerprintDoorbell"));
-        preferences.end();
-        return true;
-    } else {
-        return false;
-    }
-}
 
 bool SettingsManager::loadAppSettings() {
     Preferences preferences;
@@ -19,7 +9,6 @@ bool SettingsManager::loadAppSettings() {
         appSettings.mqttUsername = preferences.getString("mqttUsername", String(""));
         appSettings.mqttPassword = preferences.getString("mqttPassword", String(""));
         appSettings.mqttRootTopic = preferences.getString("mqttRootTopic", String("fingerprintDoorbell"));
-        appSettings.sensorPin = preferences.getString("sensorPin", "00000000");
         appSettings.sensorPairingCode = preferences.getString("pairingCode", "");
         appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);
         preferences.end();
@@ -29,12 +18,6 @@ bool SettingsManager::loadAppSettings() {
     }
 }
    
-void SettingsManager::saveNetworkSettings() {
-    Preferences preferences;
-    preferences.begin("networkSettings", false);
-    preferences.putString("hostname", networkSettings.hostname);
-    preferences.end();
-}
 
 void SettingsManager::saveAppSettings() {
     Preferences preferences;
@@ -43,20 +26,12 @@ void SettingsManager::saveAppSettings() {
     preferences.putString("mqttUsername", appSettings.mqttUsername);
     preferences.putString("mqttPassword", appSettings.mqttPassword);
     preferences.putString("mqttRootTopic", appSettings.mqttRootTopic);
-    preferences.putString("sensorPin", appSettings.sensorPin);
     preferences.putString("pairingCode", appSettings.sensorPairingCode);
     preferences.putBool("pairingValid", appSettings.sensorPairingValid);
     preferences.end();
 }
 
-NetworkSettings SettingsManager::getNetworkSettings() {
-    return networkSettings;
-}
 
-void SettingsManager::saveNetworkSettings(NetworkSettings newSettings) {
-    networkSettings = newSettings;
-    saveNetworkSettings();
-}
 
 AppSettings SettingsManager::getAppSettings() {
     return appSettings;
@@ -77,15 +52,6 @@ bool SettingsManager::deleteAppSettings() {
     return rc;
 }
 
-bool SettingsManager::deleteNetworkSettings() {
-    bool rc;
-    Preferences preferences;
-    rc = preferences.begin("networkSettings", false); 
-    if (rc)
-        rc = preferences.clear();
-    preferences.end();
-    return rc;
-}
 
 String SettingsManager::generateNewPairingCode() {
 

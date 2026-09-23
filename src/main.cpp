@@ -3,7 +3,6 @@
  ****************************************************/
 
 #include <ETH.h>
-#include <DNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
@@ -14,11 +13,8 @@
 
 enum class Mode { scan, enroll, maintenance };
 
-const char* VersionInfo = "0.4.1";
+const char* VersionInfo = "0.4.1-poe";
 const char* deviceHostname = "FingerprintDoorbell"; // also used as the MQTT client id
-
-const long  gmtOffset_sec = 0; // UTC Time
-const int   daylightOffset_sec = 0; // UTC Time
 
 const int doorbellPin = 14; // doorbell button
 bool doorbellPressed = false;
@@ -41,16 +37,11 @@ FingerprintManager fingerManager;
 SettingsManager settingsManager;
 bool needMaintenanceMode = false;
 
-const byte DNS_PORT = 53;
-DNSServer dnsServer;
 AsyncWebServer webServer(80); // AsyncWebServer  on port 80
 AsyncEventSource events("/events"); // event source (Server-Sent events)
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
-long lastMsg = 0;
-char msg[50];
-int value = 0;
 bool mqttConfigValid = true;
 
 
@@ -94,7 +85,7 @@ String processor(const String& var){
   } else if (var == "FINGERLIST") {
     return fingerManager.getFingerListAsHtmlOptionList();
   } else if (var == "HOSTNAME") {
-    return settingsManager.getNetworkSettings().hostname;
+    return deviceHostname;
   } else if (var == "VERSIONINFO") {
     return VersionInfo;
   } else if (var == "MQTT_SERVER") {
@@ -169,7 +160,7 @@ bool checkPairingValid() {
       // An empty code means there was a communication problem. So we don't have a valid code, but maybe next read will succeed and we get one again.
       // But here we just got an non-empty pairing code that was different to the awaited one. So don't expect that will change in future until repairing was done.
       // -> invalidate pairing for security reasons
-      AppSettings settings = settingsManager.getAppSettings();
+      // reuse the copy loaded above, just flip the flag and persist it
       settings.sensorPairingValid = false;
       settingsManager.saveAppSettings(settings);
     }
@@ -485,7 +476,6 @@ void reboot()
     
   mqttClient.disconnect();
   espClient.stop();
-  dnsServer.stop();
   webServer.end();
   ESP.restart();
 }
@@ -500,7 +490,7 @@ void WiFiEvent(WiFiEvent_t event)
       // This will happen during setup, when the Ethernet service starts
       Serial.println("ETH Started");
       //set eth hostname here
-      ETH.setHostname(settingsManager.getNetworkSettings().hostname.c_str());
+      ETH.setHostname(deviceHostname);
       break;
 
     case ARDUINO_EVENT_ETH_CONNECTED:

@@ -60,7 +60,6 @@ class FingerprintManager {
     void renameFinger(int id, String newName);
     String getFingerListAsHtmlOptionList();
     void setIgnoreTouchRing(bool state);
-    bool isFingerOnSensor();
     void setLedRingError();
     void setLedRingReady();
     String getPairingCode();
@@ -69,9 +68,6 @@ class FingerprintManager {
     bool deleteAll();
 
     
-    // functions for sensor replacement
-    void exportSensorDB();
-    void importSensorDB();
 
 };
 

@@ -435,18 +435,6 @@ bool FingerprintManager::isRingTouched() {
       return false;
 }
 
-bool FingerprintManager::isFingerOnSensor() {
-  // get an image
-  uint8_t returnCode = finger.getImage();
-  if (returnCode == FINGERPRINT_OK) {
-    // try to find fingerprint features in image, because image taken does not already means finger on sensor, could also be a raindrop
-    returnCode = finger.image2Tz();
-    if (returnCode == FINGERPRINT_OK)
-      return true;
-  }
-  return false;
-}
-  
 void FingerprintManager::setLedRingError() {
   finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_RED);
 }
@@ -546,15 +534,5 @@ bool FingerprintManager::setPairingCode(String pairingCode) {
     return true;
   else
     return false;
-}
-
-
-// ToDo: support sensor replacement by enable transferring of sensor DB to another sensor
-void FingerprintManager::exportSensorDB() {
-
-}
-    
-void FingerprintManager::importSensorDB() {
-
 }
 
