@@ -13,7 +13,7 @@
 
 enum class Mode { scan, enroll, maintenance };
 
-const char* VersionInfo = "0.4.1-poe";
+const char* VersionInfo = "0.5.0";
 const char* deviceHostname = "FingerprintDoorbell"; // also used as the MQTT client id
 
 const int doorbellPin = 14; // doorbell button
