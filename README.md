@@ -32,9 +32,11 @@ Added:
 
 ## Wiring
 
-![Wiring](images/wiring.svg)
+![Wiring diagram](images/wiring.svg)
 
-The original photo-based diagram is still available as [images/wiring.png](images/wiring.png).
+The original photo-based diagram (without the mailbox sensor):
+
+![Wiring photos](images/wiring.png)
 
 ## Fingerprint sensor
 
