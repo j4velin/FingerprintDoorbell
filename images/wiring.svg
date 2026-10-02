@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" font-family="Helvetica, Arial, sans-serif">
+<rect width="1200" height="760" fill="#ffffff"/>
+<rect x="70" y="110" width="170" height="560" rx="10" fill="#b91c1c"/>
+<rect x="100" y="90" width="110" height="40" rx="3" fill="#374151"/>
+<rect x="95" y="130" width="120" height="110" rx="4" fill="#9ca3af"/>
+<text x="155.0" y="190" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">ESP32</text>
+<rect x="109" y="274" width="92" height="44" rx="3" fill="#111827" stroke="#facc15" stroke-width="3"/>
+<rect x="118" y="283" width="10" height="10" fill="#d4af37"/>
+<rect x="134" y="283" width="10" height="10" fill="#d4af37"/>
+<rect x="150" y="283" width="10" height="10" fill="#d4af37"/>
+<rect x="166" y="283" width="10" height="10" fill="#d4af37"/>
+<rect x="182" y="283" width="10" height="10" fill="#d4af37"/>
+<rect x="118" y="299" width="10" height="10" fill="#d4af37"/>
+<rect x="134" y="299" width="10" height="10" fill="#d4af37"/>
+<rect x="150" y="299" width="10" height="10" fill="#d4af37"/>
+<rect x="166" y="299" width="10" height="10" fill="#d4af37"/>
+<rect x="182" y="299" width="10" height="10" fill="#d4af37"/>
+<text x="155" y="342" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">UEXT</text>
+<circle cx="84" cy="270" r="5" fill="#facc15"/>
+<circle cx="84" cy="286" r="5" fill="#d4af37"/>
+<circle cx="84" cy="302" r="5" fill="#d4af37"/>
+<circle cx="84" cy="318" r="5" fill="#d4af37"/>
+<circle cx="84" cy="334" r="5" fill="#d4af37"/>
+<circle cx="84" cy="350" r="5" fill="#d4af37"/>
+<circle cx="84" cy="366" r="5" fill="#d4af37"/>
+<circle cx="84" cy="382" r="5" fill="#d4af37"/>
+<circle cx="84" cy="398" r="5" fill="#d4af37"/>
+<circle cx="84" cy="414" r="5" fill="#d4af37"/>
+<circle cx="84" cy="270" r="9" fill="none" stroke="#facc15" stroke-width="3"/>
+<text x="100" y="445" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="start">EXT1</text>
+<rect x="95" y="550" width="120" height="130" rx="4" fill="#d1d5db" stroke="#6b7280"/>
+<text x="155.0" y="620" font-size="14" font-weight="bold" fill="#374151" text-anchor="middle">Ethernet</text>
+<text x="155.0" y="710" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">ESP32-POE-ISO</text>
+<text x="155.0" y="728" font-size="12" font-weight="normal" fill="#6b7280" text-anchor="middle">component side</text>
+<path d="M201 274 L320 325 M201 318 L320 485" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
+<text x="320" y="40" font-size="26" font-weight="bold" fill="#1f2937" text-anchor="start">UEXT connector</text>
+<rect x="320" y="62" width="18" height="18" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="346" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> R503 fingerprint sensor</text>
+<rect x="596.6" y="62" width="18" height="18" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+<text x="622.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#16a34a">Button</tspan> doorbell push button with LED</text>
+<rect x="917.6" y="62" width="18" height="18" rx="4" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+<text x="943.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> active buzzer</text>
+<rect x="320" y="325" width="840" height="160" rx="8" fill="#111827"/>
+<rect x="374.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="400" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">2</text>
+<text x="400" y="311" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GND</text>
+<rect x="322.0" y="249" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="322.0" y="249" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="340.0" y="269" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 2 · GND</text>
+<rect x="322.0" y="213" width="156" height="30" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<rect x="322.0" y="213" width="8" height="30" rx="3" fill="#16a34a"/>
+<text x="340.0" y="233" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#16a34a">Button</tspan> L2 (LED −)</text>
+<rect x="322.0" y="177" width="156" height="30" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<rect x="322.0" y="177" width="8" height="30" rx="3" fill="#16a34a"/>
+<text x="340.0" y="197" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#16a34a">Button</tspan> C</text>
+<rect x="322.0" y="141" width="156" height="30" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1.5"/>
+<rect x="322.0" y="141" width="8" height="30" rx="3" fill="#ea580c"/>
+<text x="340.0" y="161" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> −</text>
+<rect x="544.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="570" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">4</text>
+<text x="570" y="311" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO36 · U1RX</text>
+<rect x="492.0" y="249" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="492.0" y="249" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="510.0" y="269" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 3 · TXD</text>
+<rect x="714.0" y="339.0" width="52" height="52" rx="4" fill="#4b5563"/>
+<text x="740" y="371" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">6</text>
+<text x="740" y="311" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO13</text>
+<rect x="662.0" y="249" width="156" height="30" rx="6" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="740" y="269" font-size="13" font-weight="normal" fill="#9ca3af" text-anchor="middle" font-style="italic">not connected</text>
+<rect x="884.0" y="339.0" width="52" height="52" rx="4" fill="#4b5563"/>
+<text x="910" y="371" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">8</text>
+<text x="910" y="311" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO2</text>
+<rect x="832.0" y="249" width="156" height="30" rx="6" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="910" y="269" font-size="13" font-weight="normal" fill="#9ca3af" text-anchor="middle" font-style="italic">not connected</text>
+<rect x="1054.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="1080" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">10</text>
+<text x="1080" y="311" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO5</text>
+<rect x="1002.0" y="249" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="1002.0" y="249" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="1020.0" y="269" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 5 · WAKEUP</text>
+<rect x="374.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="400" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">1</text>
+<text x="400" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">+3.3V</text>
+<rect x="322.0" y="527" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="322.0" y="527" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="340.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 1 · VCC</text>
+<rect x="322.0" y="563" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="322.0" y="563" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="340.0" y="583" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 6 · 3.3VT</text>
+<rect x="544.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="570" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">3</text>
+<text x="570" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO4 · U1TX</text>
+<rect x="492.0" y="527" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="492.0" y="527" width="8" height="30" rx="3" fill="#2563eb"/>
+<text x="510.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 4 · RXD</text>
+<rect x="714.0" y="419.0" width="52" height="52" rx="4" fill="#4b5563"/>
+<text x="740" y="451" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">5</text>
+<text x="740" y="511" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO16</text>
+<rect x="662.0" y="527" width="156" height="30" rx="6" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="740" y="547" font-size="13" font-weight="normal" fill="#9ca3af" text-anchor="middle" font-style="italic">not connected</text>
+<rect x="884.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="910" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">7</text>
+<text x="910" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO15</text>
+<rect x="832.0" y="527" width="156" height="30" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1.5"/>
+<rect x="832.0" y="527" width="8" height="30" rx="3" fill="#ea580c"/>
+<text x="850.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> +</text>
+<rect x="1054.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="1080" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">9</text>
+<text x="1080" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO14</text>
+<rect x="1002.0" y="527" width="156" height="30" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<rect x="1002.0" y="527" width="8" height="30" rx="3" fill="#16a34a"/>
+<text x="1020.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#16a34a">Button</tspan> NO</text>
+<rect x="320" y="620" width="840" height="64" rx="8" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="340" y="659" font-size="16" font-weight="bold" fill="#1f2937" text-anchor="start">EXT1 pin 1 · +5V</text>
+<rect x="502.0" y="637" width="156" height="30" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<rect x="502.0" y="637" width="8" height="30" rx="3" fill="#16a34a"/>
+<text x="520.0" y="657" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#16a34a">Button</tspan> L1 (LED +)</text>
+<text x="680" y="658" font-size="14" font-weight="normal" fill="#6b7280" text-anchor="start">the button LED needs 5V, which is not available on UEXT</text>
+</svg>

@@ -18,7 +18,9 @@ For more information, take a look at the [original README](https://github.com/fr
 
 ## Wiring
 
-![Wiring](images/wiring.png)
+![Wiring](images/wiring.svg)
+
+The original photo-based diagram is still available as [images/wiring.png](images/wiring.png).
 
 ## Build & Flash
 
