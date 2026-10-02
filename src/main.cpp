@@ -23,6 +23,17 @@ const unsigned long missedRingMaxAge = 5UL * 60UL * 1000UL; // don't replay a ri
 
 const int buzzerPin = 15; // buzzer when the doorbell button is pressed
 
+// Mailbox reed contacts (NO, to GND, internal pull-ups). With nothing connected both pins read HIGH
+// ("open") without any edges, so no interrupt fires and no mailbox state is published.
+const int mailFlapPin = 32; // reed contact at the mail slot flap (closed = LOW)
+const int mailDoorPin = 33; // reed contact at the mailbox door (closed = LOW)
+const unsigned long mailDoorLockout = 3000ul; // ignore the flap for this long after the door was open
+volatile bool mailFlapOpened = false; // set from the GPIO interrupt
+volatile bool mailDoorOpened = false; // set from the GPIO interrupt
+unsigned long mailDoorLastOpenMillis = 0;
+bool mailPresent = false;
+bool mailStatePending = false; // state changed but is not published yet (retried from loop())
+
 const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
 bool shouldReboot = false;
@@ -494,6 +505,47 @@ void reboot()
 }
 
 
+void IRAM_ATTR onMailFlapOpened() { mailFlapOpened = true; }
+void IRAM_ATTR onMailDoorOpened() { mailDoorOpened = true; }
+
+/* Evaluates the mailbox contacts and publishes the state. Safe to call on every loop iteration. */
+void checkMailbox() {
+  unsigned long now = millis();
+
+  // fetch and clear the interrupt flags
+  bool doorEvent = mailDoorOpened;
+  mailDoorOpened = false;
+  bool flapEvent = mailFlapOpened;
+  mailFlapOpened = false;
+
+  // an unconnected door contact reads HIGH as well, which keeps the flap locked out permanently
+  if (doorEvent || digitalRead(mailDoorPin) == HIGH)
+    mailDoorLastOpenMillis = now;
+
+  if (doorEvent) {
+    // door was opened: mailbox got emptied
+    if (mailPresent)
+      notifyClients("Mailbox was emptied.");
+    mailPresent = false;
+    mailStatePending = true; // always publish, the retained state may be stale after a reboot
+  } else if (flapEvent && !mailPresent && (now - mailDoorLastOpenMillis >= mailDoorLockout)) {
+    // flap was opened while the door is closed: new mail
+    // (the lockout ignores a flap that rattles when the door is slammed)
+    notifyClients("New mail in the mailbox.");
+    mailPresent = true;
+    mailStatePending = true;
+  }
+
+  // Retained, so Home Assistant gets the state after a restart as well.
+  // If the broker is down the state stays pending and is published once we are connected again.
+  if (mailStatePending && mqttClient.connected()) {
+    String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+    if (mqttClient.publish((String(mqttRootTopic) + "/mailbox").c_str(), mailPresent ? "on" : "off", true))
+      mailStatePending = false;
+  }
+}
+
+
 // React to Ethernet events:
 void WiFiEvent(WiFiEvent_t event)
 {
@@ -564,6 +616,17 @@ void setup()
   Serial.print("Buzzer pin: ");
   Serial.println(buzzerPin);
 
+  pinMode(mailFlapPin, INPUT_PULLUP);
+  pinMode(mailDoorPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(mailFlapPin), onMailFlapOpened, RISING);
+  attachInterrupt(digitalPinToInterrupt(mailDoorPin), onMailDoorOpened, RISING);
+  Serial.print("Mailbox flap pin: ");
+  Serial.println(mailFlapPin);
+  Serial.print("Mailbox door pin: ");
+  Serial.println(mailDoorPin);
+  if (digitalRead(mailFlapPin) == HIGH && digitalRead(mailDoorPin) == HIGH)
+    Serial.println("Both mailbox contacts read open, sensors are probably not connected.");
+
   fingerManager.connect();
   
   if (!checkPairingValid())
@@ -612,6 +675,7 @@ void loop()
     connectMqttClient();
   }
   mqttClient.loop();
+  checkMailbox();
 
   // do the actual loop work
   switch (currentMode)
