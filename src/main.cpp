@@ -36,8 +36,8 @@ struct MailContact {
   volatile bool opened;                  // set from the GPIO interrupt
   unsigned long pendingMillis;           // when an event could not be published yet (0 = nothing pending)
 };
-MailContact mailFlap = { 32, "/mailbox/flap", "flap", 0, false, 0 }; // contact at the mail slot flap
-MailContact mailDoor = { 33, "/mailbox/door", "door", 0, false, 0 }; // contact at the mailbox door (optional)
+MailContact mailFlap = { 13, "/mailbox/flap", "flap", 0, false, 0 }; // contact at the mail slot flap (UEXT pin 6)
+MailContact mailDoor = { 16, "/mailbox/door", "door", 0, false, 0 }; // contact at the mailbox door, optional (UEXT pin 5)
 
 const int logMessagesCount = 5;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message

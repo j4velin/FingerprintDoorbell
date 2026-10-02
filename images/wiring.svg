@@ -1,5 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" font-family="Helvetica, Arial, sans-serif">
-<rect width="1200" height="760" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" font-family="Helvetica, Arial, sans-serif">
+<rect width="1200" height="800" fill="#ffffff"/>
+<text x="320" y="40" font-size="26" font-weight="bold" fill="#1f2937" text-anchor="start">UEXT connector</text>
+<rect x="320" y="62" width="18" height="18" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="346" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> R503 fingerprint sensor</text>
+<rect x="596.6" y="62" width="18" height="18" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+<text x="622.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#16a34a">Button</tspan> doorbell push button with LED</text>
+<rect x="917.6" y="62" width="18" height="18" rx="4" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+<text x="943.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> active buzzer</text>
+<rect x="320" y="94" width="18" height="18" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+<text x="346" y="109" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#7c3aed">Mailbox</tspan> reed contacts (NO), the door contact is optional</text>
+<g transform="translate(0,40)">
 <rect x="70" y="110" width="170" height="560" rx="10" fill="#b91c1c"/>
 <rect x="100" y="90" width="110" height="40" rx="3" fill="#374151"/>
 <rect x="95" y="130" width="120" height="110" rx="4" fill="#9ca3af"/>
@@ -33,13 +43,6 @@
 <text x="155.0" y="710" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">ESP32-POE-ISO</text>
 <text x="155.0" y="728" font-size="12" font-weight="normal" fill="#6b7280" text-anchor="middle">component side</text>
 <path d="M201 274 L320 325 M201 318 L320 485" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
-<text x="320" y="40" font-size="26" font-weight="bold" fill="#1f2937" text-anchor="start">UEXT connector</text>
-<rect x="320" y="62" width="18" height="18" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-<text x="346" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> R503 fingerprint sensor</text>
-<rect x="596.6" y="62" width="18" height="18" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-<text x="622.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#16a34a">Button</tspan> doorbell push button with LED</text>
-<rect x="917.6" y="62" width="18" height="18" rx="4" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
-<text x="943.6" y="77" font-size="15" fill="#374151"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> active buzzer</text>
 <rect x="320" y="325" width="840" height="160" rx="8" fill="#111827"/>
 <rect x="374.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
 <text x="400" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">2</text>
@@ -56,17 +59,21 @@
 <rect x="322.0" y="141" width="156" height="30" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1.5"/>
 <rect x="322.0" y="141" width="8" height="30" rx="3" fill="#ea580c"/>
 <text x="340.0" y="161" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#ea580c">Buzzer</tspan> −</text>
+<rect x="322.0" y="105" width="156" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<rect x="322.0" y="105" width="8" height="30" rx="3" fill="#7c3aed"/>
+<text x="340.0" y="125" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#7c3aed">Mailbox</tspan> flap + door</text>
 <rect x="544.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
 <text x="570" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">4</text>
 <text x="570" y="311" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO36 · U1RX</text>
 <rect x="492.0" y="249" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
 <rect x="492.0" y="249" width="8" height="30" rx="3" fill="#2563eb"/>
 <text x="510.0" y="269" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 3 · TXD</text>
-<rect x="714.0" y="339.0" width="52" height="52" rx="4" fill="#4b5563"/>
-<text x="740" y="371" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">6</text>
-<text x="740" y="311" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO13</text>
-<rect x="662.0" y="249" width="156" height="30" rx="6" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4 4"/>
-<text x="740" y="269" font-size="13" font-weight="normal" fill="#9ca3af" text-anchor="middle" font-style="italic">not connected</text>
+<rect x="714.0" y="339.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="740" y="371" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">6</text>
+<text x="740" y="311" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO13</text>
+<rect x="662.0" y="249" width="156" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<rect x="662.0" y="249" width="8" height="30" rx="3" fill="#7c3aed"/>
+<text x="680.0" y="269" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#7c3aed">Mailbox</tspan> flap</text>
 <rect x="884.0" y="339.0" width="52" height="52" rx="4" fill="#4b5563"/>
 <text x="910" y="371" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">8</text>
 <text x="910" y="311" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO2</text>
@@ -93,11 +100,12 @@
 <rect x="492.0" y="527" width="156" height="30" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
 <rect x="492.0" y="527" width="8" height="30" rx="3" fill="#2563eb"/>
 <text x="510.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#2563eb">Sensor</tspan> 4 · RXD</text>
-<rect x="714.0" y="419.0" width="52" height="52" rx="4" fill="#4b5563"/>
-<text x="740" y="451" font-size="17" font-weight="bold" fill="#9ca3af" text-anchor="middle">5</text>
-<text x="740" y="511" font-size="16" font-weight="bold" fill="#9ca3af" text-anchor="middle">GPIO16</text>
-<rect x="662.0" y="527" width="156" height="30" rx="6" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4 4"/>
-<text x="740" y="547" font-size="13" font-weight="normal" fill="#9ca3af" text-anchor="middle" font-style="italic">not connected</text>
+<rect x="714.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
+<text x="740" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">5</text>
+<text x="740" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO16</text>
+<rect x="662.0" y="527" width="156" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<rect x="662.0" y="527" width="8" height="30" rx="3" fill="#7c3aed"/>
+<text x="680.0" y="547" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#7c3aed">Mailbox</tspan> door</text>
 <rect x="884.0" y="419.0" width="52" height="52" rx="4" fill="#d4af37"/>
 <text x="910" y="451" font-size="17" font-weight="bold" fill="#111827" text-anchor="middle">7</text>
 <text x="910" y="511" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">GPIO15</text>
@@ -116,4 +124,5 @@
 <rect x="502.0" y="637" width="8" height="30" rx="3" fill="#16a34a"/>
 <text x="520.0" y="657" font-size="14" fill="#111827"><tspan font-weight="bold" fill="#16a34a">Button</tspan> L1 (LED +)</text>
 <text x="680" y="658" font-size="14" font-weight="normal" fill="#6b7280" text-anchor="start">the button LED needs 5V, which is not available on UEXT</text>
+</g>
 </svg>
