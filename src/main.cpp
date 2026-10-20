@@ -366,6 +366,35 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
   }
 }
 
+/* Announces the device and its entities to Home Assistant via MQTT discovery (one retained message per device).
+   Sent on every (re)connect, so the firmware version, IP address and root topic stay current. */
+void publishDiscovery() {
+  String root = settingsManager.getAppSettings().mqttRootTopic;
+  String p = R"({"dev":{"ids":["fingerprintdoorbell"],"name":"FingerprintDoorbell","mf":"Olimex","mdl":"ESP32-POE-ISO","sw":")";
+  p += VersionInfo;
+  p += R"(","cu":"http://)" + ETH.localIP().toString() + R"(/"},"o":{"name":"FingerprintDoorbell"},"cmps":{)";
+
+  p += R"("ring":{"p":"binary_sensor","name":"Doorbell","uniq_id":"fpdb_ring","stat_t":")" + root + R"(/ring","pl_on":"on","pl_off":"off"},)";
+  p += R"("match_name":{"p":"sensor","name":"Match name","uniq_id":"fpdb_match_name","stat_t":")" + root + R"(/matchName"},)";
+  p += R"("match_id":{"p":"sensor","name":"Match id","uniq_id":"fpdb_match_id","stat_t":")" + root + R"(/matchId","ent_cat":"diagnostic"},)";
+  p += R"("match_conf":{"p":"sensor","name":"Match confidence","uniq_id":"fpdb_match_conf","stat_t":")" + root + R"(/matchConfidence","ent_cat":"diagnostic"},)";
+  p += R"("log":{"p":"sensor","name":"Last log message","uniq_id":"fpdb_log","stat_t":")" + root + R"(/lastLogMessage","ent_cat":"diagnostic"},)";
+  p += R"("ignore_touch":{"p":"switch","name":"Ignore touch ring","uniq_id":"fpdb_ignore_touch","cmd_t":")" + root + R"(/ignoreTouchRing","pl_on":"on","pl_off":"off","opt":true,"ent_cat":"config"},)";
+
+  const char* eventSuffix = R"(","evt_typ":["opened"],"val_tpl":"{\"event_type\":\"{{ value }}\"}"})";
+  p += R"("mailbox_flap":{"p":"event","name":"Mailbox flap","uniq_id":"fpdb_mailbox_flap","stat_t":")" + root + mailFlap.topic + eventSuffix + ",";
+  p += R"("mailbox_door":{"p":"event","name":"Mailbox door","uniq_id":"fpdb_mailbox_door","stat_t":")" + root + mailDoor.topic + eventSuffix;
+  p += "}}";
+
+  // The payload is larger than the MQTT buffer, so stream it instead of using publish().
+  if (mqttClient.beginPublish("homeassistant/device/fingerprintdoorbell/config", p.length(), true)) {
+    mqttClient.print(p);
+    if (mqttClient.endPublish())
+      return;
+  }
+  notifyClients("Failed to publish the Home Assistant discovery message.");
+}
+
 /* (Re)connects to the MQTT broker. Safe to call repeatedly, returns quickly if there is nothing to do. */
 void connectMqttClient() {
   if (mqttClient.connected() || !mqttConfigValid || !ethHasIp)
@@ -410,6 +439,7 @@ void connectMqttClient() {
     // Subscribe
     mqttClient.subscribe((settings.mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
     notifyClients("Connected to MQTT broker.");
+    publishDiscovery();
 
     // Resync the ring topic, and replay a press that happened while we were disconnected.
     // Publishing "on" followed by the current state turns a missed press into a pulse; if

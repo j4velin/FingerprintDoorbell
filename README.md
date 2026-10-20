@@ -29,6 +29,7 @@ Added:
 - added GPIO14 as input for the doorbell ring event (for a dedicated button to just ring), see [Doorbell button](#doorbell-button)
 - added GPIO15 as output for a buzzer for an acoustic feedback while the doorbell button is pressed, see [Buzzer](#buzzer)
 - added an optional mailbox sensor: reed contacts on GPIO13 (flap) and GPIO16 (door) publish MQTT events, see [Mailbox sensor](#mailbox-sensor)
+- added MQTT discovery: the device and its entities show up in Home Assistant without any YAML, see [Home Assistant](#home-assistant)
 
 ## Wiring
 
@@ -123,6 +124,23 @@ mqtt:
       event_types: ["opened"]
       value_template: '{"event_type": "{{ value }}"}'
 ```
+
+## Home Assistant
+
+On every (re)connect to the broker the device publishes a retained [MQTT discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) message to `homeassistant/device/fingerprintdoorbell/config`. Home Assistant then creates a device "FingerprintDoorbell" with the firmware version and a link to the web UI, and these entities:
+
+| Entity | Type | Topic |
+|---|---|---|
+| Doorbell | binary sensor | `<rootTopic>/ring` |
+| Match name | sensor | `<rootTopic>/matchName` |
+| Match id, Match confidence | sensor (diagnostic) | `<rootTopic>/matchId`, `<rootTopic>/matchConfidence` |
+| Last log message | sensor (diagnostic) | `<rootTopic>/lastLogMessage` |
+| Ignore touch ring | switch (config) | `<rootTopic>/ignoreTouchRing` |
+| Mailbox flap, Mailbox door | event (`opened`) | `<rootTopic>/mailbox/flap`, `<rootTopic>/mailbox/door` |
+
+The YAML snippets in the sections above are only needed if discovery is disabled in Home Assistant. The touch ring switch is optimistic: the device does not report this setting, and it is reset after a reboot.
+
+To remove the device from Home Assistant, delete it there and clear the retained message, e.g. `mosquitto_pub -t homeassistant/device/fingerprintdoorbell/config -r -n`, otherwise it comes back.
 
 ## Build & Flash
 
